@@ -1,80 +1,178 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kto prowadzi?</title>
+    <title>Statystyki kierowców</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 600px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        #admin-panel {
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Kto ile razy prowadził?</h1>
-    <table border="1">
-        <thead>
-            <tr>
-                <th>Imię</th>
-                <th>Wyjścia</th>
-                <th>Prowadzenia</th>
-                <th>cwel</th>
-            </tr>
-        </thead>
-        <tbody id="data-table"></tbody>
-    </table>
-
-    <h2>Dodaj wpis</h2>
-    <input type="text" id="name" placeholder="Twoje imię">
-    <button onclick="addExit()">Dodaj wyjście</button>
-    <button onclick="addDrive()">Dodaj prowadzenie</button>
-
+    <div class="container">
+        <h1>Statystyki kierowców</h1>
+        <div id="data-input">
+            <input type="text" id="person" placeholder="Imię">
+            <button onclick="addTrip(true)">Prowadził</button>
+            <button onclick="addTrip(false)">Nie prowadził</button>
+        </div>
+        <input type="password" id="password" placeholder="Hasło administratora">
+        <div id="admin-panel" style="display: none;">
+            <h2>Panel administracyjny</h2>
+            <input type="text" id="person-input" placeholder="Imię osoby do usunięcia">
+            <button onclick="removeTrip()">Usuń wyjście</button>
+            <button onclick="removeDrive()">Usuń prowadzenie</button>
+            <button onclick="removePerson()">Usuń osobę</button>
+        </div>
+        <table id="stats-table">
+            <thead>
+                <tr>
+                    <th>Osoba</th>
+                    <th>Wyjścia</th>
+                    <th>Prowadził</th>
+                    <th>Procent</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
     <script>
-        const apiUrl = "https://script.google.com/macros/s/AKfycbyT72j3veMYvTuIx1lwMOjVm5R7Uz5F58bK9pLx9Xxo8jnusVAKy8zWTriMhtiDeBL-/exec";
+        const adminPassword = "TwojeAdminHaslo"; // Zmień na hasło administratora
+        const dataInput = document.getElementById("data-input");
+        const adminPanel = document.getElementById("admin-panel");
+        const passwordInput = document.getElementById("password");
+        const statsTable = document.getElementById("stats-table").getElementsByTagName('tbody')[0];
+        const personInput = document.getElementById("person-input");
+        let stats = JSON.parse(localStorage.getItem('driverStats')) || {};
 
-        async function fetchData() {
-            const response = await fetch(apiUrl);
-            const data = await response.json();
-            const table = document.getElementById("data-table");
-            table.innerHTML = "";
-            data.slice(1).forEach(row => {
-                const percentage = row[2] ? ((row[2] / row[1]) * 100).toFixed(1) + "%" : "0%";
-                table.innerHTML += `<tr><td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${percentage}</td></tr>`;
-            });
+        displayStats(); // Wyświetl statystyki przy załadowaniu strony
+
+        passwordInput.addEventListener('change', function() {
+            if (passwordInput.value === adminPassword) {
+                adminPanel.style.display = 'block';
+                passwordInput.style.display = 'none';
+            }
+        });
+
+        function addTrip(drove) {
+            const person = document.getElementById("person").value.toLowerCase(); // Konwersja na małe litery
+            if (!stats[person]) {
+                stats[person] = { trips: 0, drove: 0 };
+            }
+            stats[person].trips++;
+            if (drove) {
+                stats[person].drove++;
+            }
+            localStorage.setItem('driverStats', JSON.stringify(stats));
+            displayStats();
         }
 
-        async function updateData(name, exits, drives) {
-    console.log("Wysyłane dane:", { name, exits, drives }); // Logujemy dane przed wysłaniem
-
-    const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, exits, drives })
-    });
-
-    const result = await response.text();
-    console.log("Odpowiedź serwera:", result);
-    fetchData(); // Odświeżamy tabelę
-}
-
-        function addExit() {
-            const name = document.getElementById("name").value;
-            if (!name) return alert("Podaj imię!");
-            fetchData().then(() => {
-                const row = [...document.getElementById("data-table").children].find(r => r.children[0].textContent === name);
-                const exits = row ? parseInt(row.children[1].textContent) + 1 : 1;
-                const drives = row ? parseInt(row.children[2].textContent) : 0;
-                updateData(name, exits, drives);
-            });
+        function removeTrip() {
+            const person = personInput.value.toLowerCase(); // Konwersja na małe litery
+            if (stats[person] && stats[person].trips > 0) {
+                stats[person].trips--;
+                localStorage.setItem('driverStats', JSON.stringify(stats));
+                displayStats();
+            }
         }
 
-        function addDrive() {
-            const name = document.getElementById("name").value;
-            if (!name) return alert("Podaj imię!");
-            fetchData().then(() => {
-                const row = [...document.getElementById("data-table").children].find(r => r.children[0].textContent === name);
-                const exits = row ? parseInt(row.children[1].textContent) : 1;
-                const drives = row ? parseInt(row.children[2].textContent) + 1 : 1;
-                updateData(name, exits, drives);
-            });
+        function removeDrive() {
+            const person = personInput.value.toLowerCase(); // Konwersja na małe litery
+            if (stats[person] && stats[person].drove > 0) {
+                stats[person].drove--;
+                localStorage.setItem('driverStats', JSON.stringify(stats));
+                displayStats();
+            }
         }
 
-        fetchData();
+        function removePerson() {
+            const person = personInput.value.toLowerCase(); // Konwersja na małe litery
+            delete stats[person];
+            localStorage.setItem('driverStats', JSON.stringify(stats));
+            displayStats();
+        }
+
+        function displayStats() {
+            statsTable.innerHTML = '';
+            for (let person in stats) {
+                let row = statsTable.insertRow();
+                let cell1 = row.insertCell(0);
+                let cell2 = row.insertCell(1);
+                let cell3 = row.insertCell(2);
+                let cell4 = row.insertCell(3);
+                cell1.innerHTML = person;
+                cell2.innerHTML = stats[person].trips;
+                cell3.innerHTML = stats[person].drove;
+                cell4.innerHTML = (stats[person].drove / stats[person].trips * 100).toFixed(2) + '%';
+            }
+        }
     </script>
 </body>
 </html>
