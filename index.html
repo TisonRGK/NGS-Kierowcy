@@ -39,13 +39,18 @@
         }
 
         async function updateData(name, exits, drives) {
-            await fetch(apiUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, exits, drives })
-            });
-            fetchData();
-        }
+    console.log("Wysyłane dane:", { name, exits, drives }); // Logujemy dane przed wysłaniem
+
+    const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, exits, drives })
+    });
+
+    const result = await response.text();
+    console.log("Odpowiedź serwera:", result);
+    fetchData(); // Odświeżamy tabelę
+}
 
         function addExit() {
             const name = document.getElementById("name").value;
