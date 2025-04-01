@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kto prowadzi?</title>
+</head>
+<body>
+    <h1>Kto ile razy prowadził?</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Imię</th>
+                <th>Wyjścia</th>
+                <th>Prowadzenia</th>
+                <th>% Prowadzenia</th>
+            </tr>
+        </thead>
+        <tbody id="data-table"></tbody>
+    </table>
+
+    <h2>Dodaj wpis</h2>
+    <input type="text" id="name" placeholder="Twoje imię">
+    <button onclick="addExit()">Dodaj wyjście</button>
+    <button onclick="addDrive()">Dodaj prowadzenie</button>
+
+    <script>
+        const apiUrl = "https://script.google.com/macros/s/AKfycbxh_sYmyhS5uIuQRDIKw6m4qz0TEH3jKtAqm8z6IVKG3Ey1ek_kLSgOW5KKEik0TKpO/exec";
+
+        async function fetchData() {
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+            const table = document.getElementById("data-table");
+            table.innerHTML = "";
+            data.slice(1).forEach(row => {
+                const percentage = row[2] ? ((row[2] / row[1]) * 100).toFixed(1) + "%" : "0%";
+                table.innerHTML += `<tr><td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${percentage}</td></tr>`;
+            });
+        }
+
+        async function updateData(name, exits, drives) {
+            await fetch(apiUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, exits, drives })
+            });
+            fetchData();
+        }
+
+        function addExit() {
+            const name = document.getElementById("name").value;
+            if (!name) return alert("Podaj imię!");
+            fetchData().then(() => {
+                const row = [...document.getElementById("data-table").children].find(r => r.children[0].textContent === name);
+                const exits = row ? parseInt(row.children[1].textContent) + 1 : 1;
+                const drives = row ? parseInt(row.children[2].textContent) : 0;
+                updateData(name, exits, drives);
+            });
+        }
+
+        function addDrive() {
+            const name = document.getElementById("name").value;
+            if (!name) return alert("Podaj imię!");
+            fetchData().then(() => {
+                const row = [...document.getElementById("data-table").children].find(r => r.children[0].textContent === name);
+                const exits = row ? parseInt(row.children[1].textContent) : 1;
+                const drives = row ? parseInt(row.children[2].textContent) + 1 : 1;
+                updateData(name, exits, drives);
+            });
+        }
+
+        fetchData();
+    </script>
+</body>
+</html>
